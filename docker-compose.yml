@@ -10,6 +10,8 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -24,18 +26,18 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=https://6138-120-72-93-46.ngrok-free.app
-        - VITE_WS_URL=wss://6138-120-72-93-46.ngrok-free.app
-        - VITE_NODE_ENV=production
+        - VITE_BACKEND_URL=http://localhost:8000
+        - VITE_WS_URL=ws://localhost:8000
+        - VITE_NODE_ENV=development
     ports:
       - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
-      - VITE_BACKEND_URL=https://6138-120-72-93-46.ngrok-free.app
-      - VITE_WS_URL=wss://6138-120-72-93-46.ngrok-free.app
+      - NODE_ENV=development
+      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s

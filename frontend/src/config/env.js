@@ -11,7 +11,7 @@ const getDefaultUrls = () => {
       // Development mode - proxy will handle routing
       return {
         backend: '',  // Use relative URLs, proxy will handle
-        ws: isSecure ? 'wss:' : 'ws:' + '//' + hostname + (window.location.port ? ':' + window.location.port : '')
+        ws: isSecure ? 'wss:' : 'ws:' + '//' + hostname + ':8000'  // Always use port 8000 for WebSocket
       }
     } else {
       // Production or Docker mode
@@ -44,14 +44,13 @@ const config = {
   // API endpoints
   API: {
     BASE: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
-    ROOMS: '/api/rooms',
+    ROOMS: '/api/rooms/create',
     HEALTH: '/api/health',
   },
   
   // WebSocket endpoints
   WS: {
     BASE: import.meta.env.VITE_WS_URL || 'ws://localhost:8000',
-    ROOM: (roomId, roomKey) => `/ws/${roomId}?key=${roomKey}`,
   },
   
   // Development helpers

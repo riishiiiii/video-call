@@ -26,27 +26,43 @@ export const useVideoCall = () => {
 
   // WebSocket connection
   const connectWebSocket = useCallback((roomId, roomKey) => {
+    if (!roomId || !roomKey) {
+      console.error('Invalid WebSocket connection parameters:', { roomId, roomKey })
+      return
+    }
+
     // Use environment config for WebSocket URL
-    const wsUrl = config.getWsUrl(config.WS.ROOM(roomId, roomKey))
+    const wsUrl = `${config.WS.BASE}/ws/${roomId}?key=${roomKey}`
+    console.log('Connecting to WebSocket:', {
+      base: config.WS.BASE,
+      roomId,
+      roomKey,
+      fullUrl: wsUrl
+    })
     
     wsRef.current = new WebSocket(wsUrl)
     
     wsRef.current.onopen = () => {
-      console.log('WebSocket connected')
+      console.log('WebSocket connected successfully')
       setIsConnected(true)
     }
     
     wsRef.current.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data)
+        console.log('WebSocket message received:', data)
         await handleWebSocketMessage(data)
       } catch (error) {
         console.error('Error handling WebSocket message:', error)
       }
     }
     
-    wsRef.current.onclose = () => {
-      console.log('WebSocket disconnected')
+    wsRef.current.onclose = (event) => {
+      console.log('WebSocket disconnected:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+      })
       setIsConnected(false)
     }
     
@@ -224,6 +240,7 @@ export const useVideoCall = () => {
   const createRoom = useCallback(async () => {
     setIsLoading(true)
     try {
+      console.log('Creating room...') // Debug log
       const response = await fetch(config.getApiUrl(config.API.ROOMS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -234,14 +251,23 @@ export const useVideoCall = () => {
       }
       
       const room = await response.json()
+      console.log('Room creation response:', JSON.stringify(room, null, 2)) // Debug log
+      
+      if (!room.room_id || !room.room_key) {
+        console.error('Invalid room response:', room)
+        throw new Error('Invalid room response')
+      }
       
       // Get user media first
       await getUserMedia()
       
-      // Connect to WebSocket
-      connectWebSocket(room.id, room.key)
-      
+      // Set current room before connecting to WebSocket
       setCurrentRoom(room)
+      
+      // Connect to WebSocket with room credentials
+      console.log('Connecting to WebSocket with:', { roomId: room.room_id, roomKey: room.room_key }) // Debug log
+      connectWebSocket(room.room_id, room.room_key)
+      
       return room
     } catch (error) {
       console.error('Error creating room:', error)

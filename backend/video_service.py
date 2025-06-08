@@ -29,8 +29,10 @@ class VideoService:
         while room_id in cls._active_rooms:
             room_id = cls.generate_room_id()
         
+        room = {"room_id": room_id, "room_key": room_key}
+        print(f"Created room: {room}")  # Debug log
         cls._active_rooms[room_id] = Room(room_id, room_key)
-        return {"room_id": room_id, "room_key": room_key}   
+        return room
     
     @staticmethod
     def generate_room_id():

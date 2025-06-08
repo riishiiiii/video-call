@@ -13,11 +13,16 @@ ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 ENV VITE_WS_URL=$VITE_WS_URL
 ENV VITE_NODE_ENV=$VITE_NODE_ENV
 
+# Configure npm to use a more reliable registry and add retry logic
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies with retry logic
+RUN npm ci --prefer-offline --no-audit --no-fund
 
 # Copy source code
 COPY . .

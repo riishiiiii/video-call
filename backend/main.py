@@ -55,17 +55,26 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     try:
         # Get room key from query parameter
         room_key = websocket.query_params.get("key")
+        logger.info(f"WebSocket connection attempt - Room ID: {room_id}, Key: {room_key}")
         
         if not room_key:
+            logger.error("Missing room key")
             await websocket.close(code=1008, reason="Missing room key")
             return
 
         room = VideoService.get_room(room_id)
-        if not room or room.room_key != room_key:
+        if not room:
+            logger.error(f"Room not found: {room_id}")
+            await websocket.close(code=1008, reason="Room not found")
+            return
+            
+        if room.room_key != room_key:
+            logger.error(f"Invalid room key for room {room_id}")
             await websocket.close(code=1008, reason="Invalid room key")
             return
 
         await websocket.accept()
+        logger.info(f"WebSocket connection accepted for room {room_id}")
         
         # Generate unique participant ID
         participant_id = f"user_{len(room.participants) + 1}_{datetime.now().timestamp()}"
@@ -154,5 +163,7 @@ if __name__ == "__main__":
         host="0.0.0.0", 
         port=8000,
         log_level="info",
-        access_log=True
+        access_log=True,
+        reload=True,
+        workers=1
     )
