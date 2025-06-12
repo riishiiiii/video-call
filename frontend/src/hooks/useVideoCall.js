@@ -17,6 +17,7 @@ export const useVideoCall = () => {
   const [remoteStreams, setRemoteStreams] = useState([])
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOff, setIsVideoOff] = useState(false)
+  const [isMirrorMode, setIsMirrorMode] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
 
   // Refs
@@ -241,34 +242,58 @@ export const useVideoCall = () => {
     setIsLoading(true)
     try {
       console.log('Creating room...') // Debug log
+      console.log('API URL:', config.getApiUrl(config.API.ROOMS)) // Debug log
+      
       const response = await fetch(config.getApiUrl(config.API.ROOMS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
       
+      console.log('Response status:', response.status) // Debug log
+      
       if (!response.ok) {
-        throw new Error('Failed to create room')
+        const errorText = await response.text()
+        console.error('API Error:', errorText)
+        throw new Error(`Failed to create room: ${response.status} ${errorText}`)
       }
       
       const room = await response.json()
       console.log('Room creation response:', JSON.stringify(room, null, 2)) // Debug log
       
-      if (!room.room_id || !room.room_key) {
-        console.error('Invalid room response:', room)
-        throw new Error('Invalid room response')
+      // Validate response structure
+      if (!room || typeof room !== 'object') {
+        console.error('Invalid room response - not an object:', room)
+        throw new Error('Invalid room response format')
       }
+      
+      if (!room.room_id || !room.room_key) {
+        console.error('Missing room_id or room_key in response:', room)
+        console.error('room_id:', room.room_id, 'room_key:', room.room_key)
+        throw new Error('Invalid room response - missing credentials')
+      }
+      
+      console.log('Room validation passed:', { room_id: room.room_id, room_key: room.room_key })
       
       // Get user media first
       await getUserMedia()
       
+      // Normalize room object structure
+      const normalizedRoom = {
+        id: room.room_id,
+        key: room.room_key,
+        room_id: room.room_id,
+        room_key: room.room_key,
+        createdAt: Date.now()
+      }
+      
       // Set current room before connecting to WebSocket
-      setCurrentRoom(room)
+      setCurrentRoom(normalizedRoom)
       
       // Connect to WebSocket with room credentials
       console.log('Connecting to WebSocket with:', { roomId: room.room_id, roomKey: room.room_key }) // Debug log
       connectWebSocket(room.room_id, room.room_key)
       
-      return room
+      return normalizedRoom
     } catch (error) {
       console.error('Error creating room:', error)
       toast.error('Failed to create room')
@@ -288,7 +313,16 @@ export const useVideoCall = () => {
       // Connect to WebSocket
       connectWebSocket(roomId, roomKey)
       
-      setCurrentRoom({ id: roomId, key: roomKey })
+      // Normalize room object structure for consistency
+      const normalizedRoom = {
+        id: roomId,
+        key: roomKey,
+        room_id: roomId,
+        room_key: roomKey,
+        createdAt: Date.now()
+      }
+      
+      setCurrentRoom(normalizedRoom)
     } catch (error) {
       console.error('Error joining room:', error)
       toast.error('Failed to join room')
@@ -324,6 +358,7 @@ export const useVideoCall = () => {
     setRemoteStreams([])
     setIsMuted(false)
     setIsVideoOff(false)
+    setIsMirrorMode(true)
   }, [])
 
   // Toggle mute
@@ -364,6 +399,11 @@ export const useVideoCall = () => {
     }
   }, [])
 
+  // Toggle mirror mode
+  const toggleMirrorMode = useCallback(() => {
+    setIsMirrorMode(prev => !prev)
+  }, [])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -379,11 +419,13 @@ export const useVideoCall = () => {
     remoteStreams,
     isMuted,
     isVideoOff,
+    isMirrorMode,
     isLoading,
     createRoom,
     joinRoom,
     leaveRoom,
     toggleMute,
     toggleVideo,
+    toggleMirrorMode,
   }
 } 

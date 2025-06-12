@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { User, Mic, MicOff, Video, VideoOff } from 'lucide-react'
 
-const VideoTile = ({ stream, participant, isLocal = false, isVideoOff = false }) => {
+const VideoTile = ({ stream, participant, isLocal = false, isVideoOff = false, isMirrorMode = false }) => {
   const videoRef = useRef(null)
 
   useEffect(() => {
@@ -25,7 +25,7 @@ const VideoTile = ({ stream, participant, isLocal = false, isVideoOff = false })
           autoPlay
           playsInline
           muted={isLocal}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${isLocal && isMirrorMode ? 'scale-x-[-1]' : ''}`}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-800">
@@ -90,7 +90,7 @@ const VideoTile = ({ stream, participant, isLocal = false, isVideoOff = false })
   )
 }
 
-const VideoGrid = ({ localStream, remoteStreams, participants, isVideoOff }) => {
+const VideoGrid = ({ localStream, remoteStreams, participants, isVideoOff, isMirrorMode }) => {
   const totalParticipants = 1 + (remoteStreams?.length || 0)
   
   // Calculate grid layout
@@ -118,6 +118,7 @@ const VideoGrid = ({ localStream, remoteStreams, participants, isVideoOff }) => 
             participant={{ name: 'You', isMuted: false }}
             isLocal={true}
             isVideoOff={isVideoOff}
+            isMirrorMode={isMirrorMode}
           />
         </div>
 
